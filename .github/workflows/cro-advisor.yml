@@ -1,0 +1,96 @@
+name: CRO & Liquidity Advisor
+
+# Runs the read-only advisor agent. Trigger it manually (Actions tab → Run
+# workflow) and pick a mode, or let the weekly schedule run the digest.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   POSTHOG_PROJECT_ID         e.g. 447081
+#   POSTHOG_PERSONAL_API_KEY   personal API key (phx_…) with query:read
+#   GROQ_API_KEY               only needed for the "dry-run" mode (LLM)
+#   SLACK_WEBHOOK_URL          optional — weekly digest is posted if set
+#   FRONTEND_REPO              optional — owner/repo of jhaazi-frontend (dry-run grounding)
+#   FRONTEND_TOKEN             optional — token with read access to FRONTEND_REPO
+#
+# Modes:
+#   print-metrics  ingest live metrics, dump JSON           (no LLM, no writes)
+#   weekly         snapshot + regression diff + backlog + Slack digest (read-only)
+#   dry-run        full pipeline incl. LLM recommendations  (no GitHub writes)
+# Issue emission (the only write path) stays human-gated and is intentionally
+# NOT run in CI.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Which command to run"
+        type: choice
+        default: weekly
+        options:
+          - weekly
+          - print-metrics
+          - dry-run
+  schedule:
+    - cron: "0 9 * * 1" # every Monday 09:00 UTC — weekly digest
+
+concurrency:
+  group: cro-advisor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      # On a schedule there are no inputs, so default to the weekly digest.
+      MODE: ${{ github.event.inputs.mode || 'weekly' }}
+      POSTHOG_HOST: https://us.posthog.com
+      POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+      POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      LLM_PROVIDER: groq
+      CRO_AGENT_MODEL: llama-3.3-70b-versatile
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      FRONTEND_REPO: ${{ secrets.FRONTEND_REPO }}
+      JHAAZI_FRONTEND_PATH: ./jhaazi-frontend
+    steps:
+      - name: Checkout agent
+        uses: actions/checkout@v4
+
+      # Grounding for dry-run needs the frontend checked out; skipped otherwise
+      # or when FRONTEND_REPO/FRONTEND_TOKEN aren't configured.
+      - name: Checkout jhaazi-frontend (dry-run grounding)
+        if: env.MODE == 'dry-run' && env.FRONTEND_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.FRONTEND_REPO }}
+          token: ${{ secrets.FRONTEND_TOKEN }}
+          path: jhaazi-frontend
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e .
+
+      # Persist metric snapshots across runs so --weekly can diff week-over-week.
+      - name: Restore history
+        uses: actions/cache@v4
+        with:
+          path: data/history
+          key: cro-history-${{ github.run_id }}
+          restore-keys: cro-history-
+
+      - name: Run advisor (${{ env.MODE }})
+        run: python -m cro_agent.run --${{ env.MODE }}
+
+      - name: Upload backlog & snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cro-advisor-${{ env.MODE }}
+          path: data/history/
+          if-no-files-found: ignore

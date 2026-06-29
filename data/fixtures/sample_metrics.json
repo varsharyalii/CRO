@@ -1,0 +1,22 @@
+{
+  "window_days": 14,
+  "buyer_funnel": [
+    { "name": "marketplace_view", "event": "jz_marketplace_view", "volume": 24000 },
+    { "name": "drop_view", "event": "jz_drop_view", "volume": 14200 },
+    { "name": "drop_card_select", "event": "jz_drop_card_select", "volume": 9800 },
+    { "name": "item_view", "event": "jz_item_view", "volume": 7300 },
+    { "name": "claim_attempt", "event": "jz_claim_attempt", "volume": 3100 },
+    { "name": "claim_success", "event": "jz_claim_success", "volume": 2050 },
+    { "name": "checkout_intent", "event": "jz_checkout_intent", "volume": 1800 },
+    { "name": "checkout_submit", "event": "jz_checkout_submit", "volume": 910 },
+    { "name": "checkout_created", "event": "jz_checkout_created", "volume": 840 },
+    { "name": "payment_return", "event": "jz_payment_return", "volume": 760 },
+    { "name": "purchase_confirmed", "event": "jz_purchase_confirmed", "volume": 540 }
+  ],
+  "liquidity_metrics": [
+    { "name": "claim_to_paid", "value": 0.2634, "sample_size": 2050 },
+    { "name": "expired_claim_rate", "value": 0.3122, "sample_size": 2050 },
+    { "name": "sell_through", "value": 0.41, "sample_size": 1600 },
+    { "name": "seller_activation", "value": 0.58, "sample_size": 240 }
+  ]
+}
