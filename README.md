@@ -2,9 +2,9 @@
 
 # 🧭 CRO & Liquidity Advisor Agent
 
-**An autonomous analyst that turns Jhaazi's PostHog data into prioritized, codebase-aware optimization work — filed as GitHub issues, with zero hallucinated numbers.**
+**It figures out your data problems, pinpoints the exact UI element to change to fix them, and helps you run the experiment that proves it worked — with you in the loop at every step.**
 
-*Read-only by design · grounded against real data + real source files · human-approved before it writes anything*
+*Diagnose → Prescribe → Experiment · grounded in live PostHog data and your real source files · zero hallucinated numbers*
 
 `LangGraph` · `PostHog Query API` · `Groq / Claude` · `Python 3.12`
 
@@ -12,13 +12,20 @@
 
 ---
 
-## The problem it solves
+## What it does, in three moves
 
-Jhaazi's funnel is fully instrumented in PostHog (~130k events / 14 days). But data isn't insight — **nobody was systematically turning that funnel into a prioritized, actionable backlog of conversion and liquidity fixes.** Analysts do this by hand, slowly, and inconsistently.
+> Jhaazi's funnel is fully instrumented in PostHog (~130k events / 14 days). But data isn't insight. This agent closes that gap — on demand, end to end.
 
-This agent does it on demand: it reads the live funnel, finds where buyers and sellers leak, traces each leak to the **exact React component responsible**, proposes a concrete UI change + a runnable A/B test, and files it as a GitHub issue — **only after a human approves.**
+### 1️⃣ Finds the data problem
+It reads the live buyer funnel and seller-liquidity metrics, and **surfaces exactly where you're leaking** — ranked by how much it costs you. No dashboards to stare at; it tells you *"this is the #1 thing bleeding users, and here's the number."*
 
-> It is an **advisor, not a mutator.** It is read-only against PostHog, the codebase, and seller data. Its single write is opening a GitHub issue.
+### 2️⃣ Pinpoints the element to change
+For each leak, it traces the problem to the **exact React component responsible** (e.g. `drop-landing-screen.tsx`) and proposes a **concrete UI/UX change** to fix it — not "improve checkout," but *which screen, what change, why.*
+
+### 3️⃣ Helps you run the experiment — human in the loop
+It generates a **launch-ready PostHog experiment** (feature flag, goal metric, sample size) to validate the change, files it as a GitHub issue **only after you approve**, and later **measures whether the metric actually moved** — feeding what works back into its next round of suggestions.
+
+> **You stay in control.** It is an *advisor, not a mutator* — read-only against PostHog, your codebase, and seller data. The only thing it ever writes is a GitHub issue, and only with your approval.
 
 ---
 
