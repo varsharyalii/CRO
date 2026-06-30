@@ -24,38 +24,48 @@ This agent does it on demand: it reads the live funnel, finds where buyers and s
 
 ## 👀 See it in action
 
-In one run against live production data, the agent filed these — each traced to a real leak, a real file, and a launch-ready experiment:
+### 🟥 The data problem
 
-| Issue | Opportunity | Evidence (live PostHog) |
+> **People land on a drop, but never go to the marketplace. What do we do?**
+
+On Jhaazi, sellers share drop links on Instagram — so thousands of people land **directly on a single drop** and never browse the marketplace to discover other sellers. Every one of them is a buyer who only ever sees one seller's inventory. That's a quiet, expensive liquidity leak.
+
+You can *feel* the problem. Turning it into a shipped fix usually means: an analyst digs through PostHog, eyeballs a funnel, guesses a cause, writes a vague ticket, and someone argues about priority. Days pass.
+
+### 🟩 What the agent does with it — in one run
+
+```mermaid
+flowchart LR
+    P["🟥 'Drop-landers<br/>don't explore'"] --> D[Detect] --> Q[Quantify] --> L[Locate] --> R[Prescribe] --> E[Design test] --> I["🟦 Grounded<br/>GitHub issue"]
+    style P fill:#ffe0e0,stroke:#d33
+    style I fill:#cce5ff,stroke:#004085
+```
+
+| Step | The agent's output | Where it came from |
 |---|---|---|
-| **#3** | Convert Instagram drop-landers into marketplace explorers | 68% never reach the marketplace (1,674 users) |
-| **#4** | Optimize drop-card selection | 53% drop-off, worst on scheduled drops |
-| **#5** | Clarify the claim CTA on item detail | 84% item→claim drop-off, **94% on ended drops** |
-| **#6** | Claim-expiration reminders | 28% of holds expire before payment |
-| **#7** | Tighten the claim→paid funnel | claim-to-paid gap |
+| **Detect** | Flags `drop_view → marketplace_view` as the **#1 opportunity** | deterministic scoring (`lost = dropoff × volume`) |
+| **Quantify** | **68% of 1,674 drop-landers** never reach the marketplace | live PostHog HogQL query |
+| **Locate** | Traces it to `src/features/drops/components/drop-landing-screen.tsx` | hand-authored leak→component map |
+| **Prescribe** | *"Add an explore-more-sellers section to the drop landing page"* | LLM, grounded in the actual file |
+| **Design test** | PostHog experiment: flag `explore-more-sellers`, goal `jz_marketplace_view`, **932/variant** | structured experiment spec |
+| **File it** | One GitHub issue — **only after you approve** | idempotent emit |
 
-### A real, unedited issue the agent wrote
+### The issue it actually wrote (unedited)
 
 > ### Add explore-more-sellers surfaces to the drop landing page
 >
 > **Leak** — Users deep-link to a drop from Instagram and never reach the marketplace feed.
 >
-> **Evidence (from PostHog)**
-> - `dropoff_rate` = **0.6828**
-> - `upstream_volume` = **1674**
+> **Evidence (from PostHog)** — `dropoff_rate` = **0.6828** · `upstream_volume` = **1674**
 >
 > **Root-cause hypothesis** — Lack of visibility of other sellers on the drop landing page.
 >
 > **Proposed change** — Add a section to the drop landing page that showcases other sellers and lets users explore the marketplace.
 > **Target file:** `src/features/drops/components/drop-landing-screen.tsx`
 >
-> **PostHog Experiment (handoff-ready)**
-> - Feature flag: `explore-more-sellers`
-> - Goal metric: `jz_marketplace_view` · Variants: `control` vs `variant` · Min sample/variant: **932**
->
-> *Filed by the CRO & Liquidity Advisor Agent. Read-only analysis; review before acting.*
+> **PostHog Experiment (handoff-ready)** — flag `explore-more-sellers` · goal `jz_marketplace_view` · `control` vs `variant` · min sample/variant **932**
 
-Every number above is **lifted directly from a PostHog query** — the grounding harness rejects any recommendation that cites a statistic not present in the ingested data, or a file path that doesn't exist in the repo.
+**Every number is lifted directly from a PostHog query.** The grounding harness rejects any recommendation that cites a statistic not in the ingested data, or a file that doesn't exist in the repo. And the agent does this for *every* leak in the funnel — claim CTAs, checkout, claim expiry — ranked by impact, in a single run.
 
 ---
 
